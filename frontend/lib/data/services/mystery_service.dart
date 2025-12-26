@@ -1,11 +1,12 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/mystery_report.dart';
 import '../models/rabbit_hole_suggestion.dart';
 
 class MysteryService {
   // API Key de Gemini (Consíguela en aistudio.google.com)
-  static const String _geminiApiKey = 'AIzaSyA7K9EntjWb0mpGm64iYOfL1OLT4qPLZBo';
+  static String get _geminiApiKey => dotenv.env['GEMINI_API_KEY'] ?? '';
 
   /// Inicia una investigación sobre un [query] específico.
   /// Retorna un [MysteryReport] o lanza una excepción si la red falla.
@@ -15,7 +16,7 @@ class MysteryService {
   }) async {
     try {
       // Usamos el mismo modelo que funcionó para los Rabbit Holes
-      const url =
+      final url =
           'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=$_geminiApiKey';
 
       final String perspective = isSkeptic
@@ -78,7 +79,7 @@ class MysteryService {
   /// Genera sugerencias de "Rabbit Holes" usando Gemini.
   Future<List<RabbitHoleSuggestion>> getSuggestedRabbitHoles() async {
     // MODO DE PRUEBA: Si no hay API Key de Gemini
-    if (_geminiApiKey == 'TU_GEMINI_API_KEY') {
+    if (_geminiApiKey.isEmpty || _geminiApiKey == 'TU_GEMINI_API_KEY') {
       await Future.delayed(const Duration(seconds: 1));
       return [
         RabbitHoleSuggestion(
@@ -114,7 +115,7 @@ class MysteryService {
     }
 
     try {
-      const url =
+      final url =
           'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=$_geminiApiKey';
 
       final response = await http.post(

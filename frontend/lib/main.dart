@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/theme/app_theme.dart';
 import 'data/models/mystery_report.dart';
 import 'data/models/rabbit_hole_suggestion.dart';
 import 'data/services/mystery_service.dart';
 import 'ui/widgets/evidence_board.dart';
 
-void main() {
+void main() async {
+  await dotenv.load(fileName: ".env");
   runApp(const DeeptectiveApp());
 }
 
