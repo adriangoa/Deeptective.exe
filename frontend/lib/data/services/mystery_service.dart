@@ -3,6 +3,8 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/mystery_report.dart';
 import '../models/rabbit_hole_suggestion.dart';
+import 'web_scraper_service.dart';
+import 'intelligence_analyst_service.dart';
 
 class MysteryService {
   // API Key de Gemini (Consíguela en aistudio.google.com)
@@ -15,60 +17,28 @@ class MysteryService {
     bool isSkeptic = true,
   }) async {
     try {
-      // Usamos el mismo modelo que funcionó para los Rabbit Holes
-      final url =
-          'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=$_geminiApiKey';
+      // 1. Recopilar datos de la web (Scraping)
+      final scraper = WebScraperService();
+      final List<String> webData = await scraper.fetchMysteryData(query);
+      final String webContext = webData.isEmpty
+          ? "Sin datos externos recientes."
+          : webData.join("\n\n------------------------\n\n");
 
-      final String perspective = isSkeptic
-          ? "Actúa como un detective ESCÉPTICO y racional. Prioriza explicaciones científicas, lógicas y desmiente mitos sin fundamento. Busca el origen psicológico o sociológico del misterio."
-          : "Actúa como un investigador de lo PARANORMAL y 'Creyente'. Mantén la mente abierta a teorías alternativas, conexiones ocultas, fenómenos inexplicables y testimonios de testigos, aunque parezcan imposibles.";
+      // 2. Análisis de Inteligencia (Nuevo Servicio)
+      final analyst = IntelligenceAnalystService();
+      final dossier = await analyst.analyzeIntelligence(query, webContext);
 
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "contents": [
-            {
-              "parts": [
-                {
-                  "text":
-                      """
-                    $perspective
-                    
-                    Analiza el siguiente caso basándote en tu conocimiento de internet, foros (Reddit, 4chan), wikis y archivos históricos: '$query'.
-                    
-                    Debes responder ÚNICAMENTE con un objeto JSON válido (sin markdown) con esta estructura:
-                    {
-                      "fuente": "Menciona la fuente principal, dominio o comunidad más relevante asociada (ej: Reddit r/UnresolvedMysteries, Archivos FBI, Wikipedia)",
-                      "resumen_ejecutivo": "Resumen detallado, técnico pero comprensible (máx 100 palabras)",
-                      "nivel_de_evidencia": "Bajo, Medio o Alto (basado en el consenso general o pruebas disponibles)",
-                      "tags": ["Etiqueta1", "Etiqueta2", "Etiqueta3"]
-                    }
-                  """,
-                },
-              ],
-            },
-          ],
-        }),
+      // 3. Adaptar Dossier a MysteryReport para la UI actual
+      return MysteryReport(
+        source:
+            dossier.codename, // Usamos el nombre en clave como fuente/título
+        executiveSummary: dossier.executiveSummary,
+        evidenceLevel:
+            dossier.rabbitHoleDepth, // Usamos la profundidad como nivel
+        tags:
+            dossier.divergentTheories, // Las teorías divergentes serán los tags
+        evidenceLog: dossier.evidenceLog,
       );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final content = data['candidates'][0]['content']['parts'][0]['text'];
-        // Limpiamos posibles bloques de código Markdown que la IA pueda incluir
-        final cleanJson = content
-            .replaceAll('```json', '')
-            .replaceAll('```', '')
-            .trim();
-        return MysteryReport.fromJson(jsonDecode(cleanJson));
-      } else {
-        print(
-          'Error Gemini Investigate [${response.statusCode}]: ${response.body}',
-        );
-        throw Exception(
-          'Error en el enlace neuronal: Código ${response.statusCode}',
-        );
-      }
     } catch (e) {
       print('Excepción en Investigate: $e');
       // Manejo de errores robusto para la UI

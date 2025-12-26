@@ -1,0 +1,10 @@
+{
+    "name": "deeptective-backend",
+    "version": "1.0.0",
+    "description": "Servicio de scraping para Deeptective",
+    "main": "mystery_scraper.js",
+    "dependencies": {
+        "axios": "^1.6.0",
+        "cheerio": "^1.0.0-rc.12"
+    }
+}
